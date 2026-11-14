@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% set main_class = 'wide' %}
+
+{% macro field_row(key, label, src, cfg) %}
+  <div class="frow" data-field="{{ key }}" data-src="{{ 1 if src else 0 }}">
+    {% if src %}
+      <label class="chk"><input type="checkbox" class="f-use" {{ 'checked' if cfg.use_file }}> {{ label }}</label>
+      <span class="srcval small muted"></span>
+      <input type="text" class="f-manual" value="{{ cfg.manual }}" placeholder="Type your own value (used for every COA)">
+    {% else %}
+      <span class="lbl">{{ label }}</span>
+      <input type="text" class="f-manual always" value="{{ cfg.manual }}" placeholder="Type value (used for every COA)">
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% block content %}
+<div class="two">
+  <section class="panel" id="panel">
+    <h2 class="boxed">What to change in your final Doc?</h2>
+    <p class="muted small">
+      <b>Ticked</b> = taken from your uploaded file for each sample.
+      <b>Unticked</b> = type your own value, used on every COA in this batch.
+      The preview on the right updates instantly.
+    </p>
+
+    <h3>Product information</h3>
+    {% for key, label, src, group, _ in fields if group == 'Product information' %}
+      {{ field_row(key, label, src, settings.fields[key]) }}
+    {% endfor %}
+
+    <h3>Testing details</h3>
+    {% for key, label, src, group, _ in fields if group == 'Testing details' %}
+      {{ field_row(key, label, src, settings.fields[key]) }}
+    {% endfor %}
+
+    <div class="subh">Observations</div>
+    {% for key, label, spec, src, _, _ in params if key in ('tbc','ym') %}
+      <div class="prow" data-param="{{ key }}">
+        <label class="chk"><input type="checkbox" class="p-include" {{ 'checked' if settings.params[key].include }}> {{ label }}</label>
+        <input type="text" class="p-spec" value="{{ settings.params[key].spec }}" title="Specification limit">
+        <label class="chk small"><input type="checkbox" class="p-use" {{ 'checked' if settings.params[key].use_file }}> from file</label>
+        <input type="text" class="p-manual" value="{{ settings.params[key].manual }}" placeholder="Own result">
+      </div>
+    {% endfor %}
+
+    <div class="subh">Pathogens</div>
+    {% for key, label, spec, src, _, _ in params if key not in ('tbc','ym') %}
+      <div class="prow" data-param="{{ key }}">
+        <label class="chk"><input type="checkbox" class="p-include" {{ 'checked' if settings.params[key].include }}> {{ label }}</label>
+        <input type="text" class="p-spec" value="{{ settings.params[key].spec }}" title="Specification limit">
+        <label class="chk small"><input type="checkbox" class="p-use" {{ 'checked' if settings.params[key].use_file }}> from file</label>
+        <input type="text" class="p-manual" value="{{ settings.params[key].manual }}" placeholder="Own result">
+      </div>
+    {% endfor %}
+
+    <div class="subh">Others <span class="muted small">(type a new bacteria / fungus test by hand)</span></div>
+    <div id="others"></div>
+    <button type="button" class="btn small ghost" id="addother">+ Add another test</button>
+
+    <h3>Dates</h3>
+    {% for key, label, src, group, _ in fields if group == 'Dates' %}
+      {{ field_row(key, label, src, settings.fields[key]) }}
+    {% endfor %}
+
+    <details class="more">
+      <summary>Remarks, A.R. number format and signatures</summary>
+      <div class="frow"><span class="lbl">Remark result</span>
+        <select id="remarks">
+          {% for v, t in [('auto','Auto (judge from results)'),('Complies','Always "Complies"'),('Does not Complies','Always "Does not Complies"'),('keep','Leave template wording')] %}
+            <option value="{{ v }}" {{ 'selected' if settings.remarks == v }}>{{ t }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="frow"><span class="lbl">A.R. No. prefix</span><input type="text" id="arprefix" class="always" value="{{ settings.ar_prefix }}"></div>
+      <div class="frow"><span class="lbl">Analysed by</span><input type="text" class="sig always" data-sig="analysed" value="{{ settings.signatories.analysed }}"></div>
+      <div class="frow"><span class="lbl">Reviewed by</span><input type="text" class="sig always" data-sig="reviewed" value="{{ settings.signatories.reviewed }}"></div>
+      <div class="frow"><span class="lbl">Approved by</span><input type="text" class="sig always" data-sig="approved" value="{{ settings.signatories.approved }}"></div>
+    </details>
+
+    <div class="stickybar">
+      <button class="btn" id="process">Process final COA &rarr;</button>
+      <span class="small muted">{{ items|length }} COA{{ 's' if items|length != 1 }} &middot; {{ 'PDF' if state.format == 'pdf' else 'Word' }}</span>
+      <a class="link small" href="{{ url_for('select_page') }}">&larr; back</a>
+    </div>
+  </section>
+
+  <section class="previewcol">
+    <div class="previewhead">
+      <div><b>A preview of your COA (final)</b><div class="small muted">Live &mdash; changes show as you click.</div></div>
+      <div class="pager">
+        <button type="button" class="btn small ghost" id="prev" aria-label="Previous">&lsaquo;</button>
+        <select id="jump">
+          {% for it in items %}<option value="{{ loop.index0 }}">{{ it.sr }} &middot; {{ it.batch }}</option>{% endfor %}
+        </select>
+        <button type="button" class="btn small ghost" id="next" aria-label="Next">&rsaquo;</button>
+      </div>
+    </div>
+    <div id="warn" class="warnbox" hidden></div>
+    <div class="previewbox" id="previewbox"><div id="preview" class="previewpage"></div></div>
+  </section>
+</div>
+
+<div id="overlay" hidden><div class="spin"></div><p id="overlaymsg">Creating your COA files...</p></div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.COA = {{ {'items': items, 'settings': settings, 'previewUrl': url_for('api_preview'), 'generateUrl': url_for('api_generate')}|tojson }};</script>
+<script src="{{ url_for('static', filename='js/customize.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="center">
+  <h1>Upload your inward sheet</h1>
+  <p class="muted">Excel (.xlsx) or CSV with columns like A.R. No., Product Name, Batch No, TVC, Y&amp;M, Pathogens, dates.</p>
+
+  <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="upload-form" id="upform">
+    <input type="file" name="file" id="file" accept=".csv,.xlsx,.xlsm" hidden>
+    <label for="file" class="btn big">Upload CSV / Excel file <span class="arrow">&#8679;</span></label>
+    <div id="chosen" class="muted small">Click the button and pick your file</div>
+  </form>
+
+  {% if has_sample %}
+  <form method="post" action="{{ url_for('use_sample') }}" class="mt">
+    <button class="link">or try it with the sample inward file</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const f = document.getElementById('file');
+  f.addEventListener('change', () => {
+    if (f.files.length) {
+      document.getElementById('chosen').textContent = 'Reading ' + f.files[0].name + ' ...';
+      document.getElementById('upform').submit();
+    }
+  });
+</script>
+{% endblock %}
