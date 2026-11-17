@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+{% set warn_count = state.outputs|selectattr('warnings')|list|length %}
+<section>
+  <div class="donehead">
+    <div class="checkmark">&#10003;</div>
+    <div>
+      <h1>Your COAs are ready</h1>
+      <p class="muted">Save them one by one, or take the whole batch as a single ZIP.</p>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>{{ state.outputs|length }}</b><span>certificates</span></div>
+    <div class="stat"><b>{{ 'PDF' if state.format == 'pdf' else 'Word' }}</b><span>file type</span></div>
+    <div class="stat {{ 'warnstat' if warn_count }}"><b>{{ warn_count }}</b><span>need a look</span></div>
+  </div>
+
+  <form method="post" action="{{ url_for('batch_zip') }}" data-busy-short="Packing your ZIP...">
+    <div class="tablewrap">
+      <table class="grid">
+        <thead><tr><th><input type="checkbox" id="all" checked aria-label="Tick all"></th><th>Sr. No.</th><th>Batch</th><th>Product Name</th><th>Type</th><th>Check</th><th></th></tr></thead>
+        <tbody>
+        {% for o in state.outputs %}
+          <tr>
+            <td><input type="checkbox" name="names" value="{{ o.file }}" checked></td>
+            <td>{{ o.sr }}</td>
+            <td>{{ o.batch }}</td>
+            <td>{{ o.product }}</td>
+            <td><span class="tag cat-{{ o.category }}">{{ o.category }}</span>{% if o.own %} <span class="tag wait" title="Edited for this COA only">own</span>{% endif %}</td>
+            <td>{% if o.warnings %}<span class="tag wait" title="{{ o.warnings|join('; ') }}">{{ o.warnings|length }} warning{{ 's' if o.warnings|length != 1 }}</span>{% else %}<span class="tag ok">ok</span>{% endif %}</td>
+            <td><a class="btn small" href="{{ url_for('get_file', name=o.file) }}" data-busy-short="Starting download...">Save / download</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="actionbar">
+      <div class="row gap wrap">
+        <button class="btn" name="mode" value="ticked">Download ticked as one ZIP</button>
+        <button class="btn ghost" name="mode" value="all">Download whole batch ({{ state.outputs|length }} files)</button>
+      </div>
+      <span class="muted small">Untick the ones you don't want, then use the first button.</span>
+    </div>
+  </form>
+
+  <p class="mt"><a class="link" href="{{ url_for('customize_page') }}">&larr; Change something and regenerate</a> &middot;
+     <a class="link" href="{{ url_for('select_page') }}">Pick different samples</a> &middot;
+     <a class="link" href="{{ url_for('upload_page') }}">Start a new batch</a></p>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const all = document.getElementById('all');
+  all.addEventListener('change', () => document.querySelectorAll('input[name=names]').forEach(c => c.checked = all.checked));
+</script>
+{% endblock %}

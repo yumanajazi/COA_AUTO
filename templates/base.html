@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>COA-Auto by YUMAN</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="{{ url_for('upload_page') }}" title="Home"><i class="logo-dot"></i>COA&#8209;Auto <small>by YUMAN</small></a>
+    <nav>
+      <ol class="steps">
+        {% for n, label, ep in [(1,'Upload','upload_page'),(2,'Review','select_page'),(3,'Customize','customize_page'),(4,'Download','download_page')] %}
+          <li class="{{ 'on' if step == n }}{{ ' done' if step and n < step }}{{ ' locked' if n > reach }}">
+            {% if n <= reach %}<a href="{{ url_for(ep) }}" {% if n == 2 %}data-busy="Opening your samples..."{% endif %}><span>{{ n }}</span>{{ label }}</a>
+            {% else %}<a aria-disabled="true" title="Finish the earlier step first"><span>{{ n }}</span>{{ label }}</a>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </nav>
+  </header>
+  <main class="{{ main_class|default('') }}">
+    {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <div id="busy" hidden><div class="spin"></div><p id="busymsg">Working...</p></div>
+  <script>
+    // Any form with data-busy="message" (or link with it) shows the small spinner while the next page loads.
+    // data-busy-short is for downloads: the page stays, so the spinner hides after 1.5 s.
+    (function () {
+      const box = document.getElementById('busy'), msg = document.getElementById('busymsg');
+      function show(text, ms) { msg.textContent = text; box.hidden = false; if (ms) setTimeout(() => { box.hidden = true; }, ms); }
+      document.addEventListener('submit', e => {
+        const f = e.target;
+        if (f.dataset.busy) show(f.dataset.busy);
+        else if (f.dataset.busyShort) show(f.dataset.busyShort, 1500);
+      });
+      document.addEventListener('click', e => {
+        const a = e.target.closest('a[data-busy], a[data-busy-short]');
+        if (!a) return;
+        if (a.dataset.busy) show(a.dataset.busy); else show(a.dataset.busyShort, 1500);
+      });
+      window.addEventListener('pageshow', () => { box.hidden = true; });
+      window.showBusy = show;
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

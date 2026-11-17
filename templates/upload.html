@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <span class="pill">Inward sheet &rarr; Certificates of Analysis</span>
+  <h1>Make every COA in minutes,<br>not hours.</h1>
+  <p class="lead">Upload your inward sheet, tick the samples, adjust what you need and download finished Word or PDF certificates in your own template.</p>
+
+  <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="dropcard" id="upform" data-busy="Reading your file...">
+    <input type="file" name="file" id="file" accept=".csv,.xlsx,.xlsm" hidden>
+    <label for="file" class="btn big">Upload CSV / Excel file <span class="arrow">&#8679;</span></label>
+    <div id="chosen" class="muted small">Click the button and pick your file (.xlsx or .csv)</div>
+  </form>
+
+  <div class="subactions">
+    {% if state.records %}
+      <a class="btn ghost" href="{{ url_for('select_page') }}" data-busy="Opening your samples...">Continue with {{ state.info.filename }} &rarr;</a>
+    {% endif %}
+    {% if has_sample %}
+      <form method="post" action="{{ url_for('use_sample') }}" data-busy="Reading the sample file..."><button class="link">or try the sample inward file</button></form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="features">
+  <div class="feat"><b>1 &middot; Upload</b><span>Excel or CSV. Header row and junk lines are found automatically.</span></div>
+  <div class="feat"><b>2 &middot; Review</b><span>Search by product, filter by analysis date, tick what you need.</span></div>
+  <div class="feat"><b>3 &middot; Customize</b><span>FG / RM / WS categories, live preview, one-off changes for a single COA.</span></div>
+  <div class="feat"><b>4 &middot; Download</b><span>Each file alone, or the whole batch as one ZIP.</span></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const f = document.getElementById('file');
+  f.addEventListener('change', () => {
+    if (f.files.length) {
+      document.getElementById('chosen').textContent = 'Reading ' + f.files[0].name + ' ...';
+      document.getElementById('upform').requestSubmit();
+    }
+  });
+</script>
+{% endblock %}
